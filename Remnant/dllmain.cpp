@@ -251,7 +251,7 @@ void SetupKeybinds()
         if (MyPlayerController) {
             auto Items = GetMyPlayer()->Inventory->Items;
             for (auto i = 0; i < Items.Num(); i++) {
-                std::cout << GetMyPlayer()->Inventory->Get
+                
             }
         }
         });
