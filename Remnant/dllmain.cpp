@@ -69,9 +69,9 @@ void DrawItemESP(UFT::UCanvas* Canvas)
 
                 // If the item has no owner, then it's a single item on the ground and we can print the distance
                 // Otherwise, we don't want to print distance because the distance will print under the character
-                if (!TheItem->GetOwner())
+                if (!TheItem->GetOwner() && MyPlayerController && GetMyPlayer())
                 {
-                    std::wstring Distance = std::to_wstring((int)(MyPlayerController->GetDistanceTo(TheItem) / 100)) + L"m";
+                    std::wstring Distance = std::to_wstring((int)(GetMyPlayer()->GetDistanceTo(TheItem) / 100)) + L"m";
                     Canvas->K2_DrawText(
                         MyFont, UFT::FString{ Distance.c_str() }, FixScreenPos(&ScreenPos), UFT::FVector2D(1, 1),
                         UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true,
@@ -107,13 +107,16 @@ void DrawPlayerESP(UFT::UCanvas* Canvas)
                     UFT::FLinearColor(0, 0, 0, 1)
                 );
 
-                // Print the distance in meters under the character
-                std::wstring Distance = std::to_wstring((int)(MyPlayerController->GetDistanceTo(Player) / 100)) + L"m";
-                Canvas->K2_DrawText(
-                    MyFont, UFT::FString{ Distance.c_str() }, FixScreenPos(&ScreenPos), UFT::FVector2D(1, 1),
-                    UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true,
-                    UFT::FLinearColor(0, 0, 0, 1)
-                );
+                if (MyPlayerController && GetMyPlayer())
+                {
+                    // Print the distance in meters under the character
+                    std::wstring Distance = std::to_wstring((int)(GetMyPlayer()->GetDistanceTo(Player) / 100)) + L"m";
+                    Canvas->K2_DrawText(
+                        MyFont, UFT::FString{ Distance.c_str() }, FixScreenPos(&ScreenPos), UFT::FVector2D(1, 1),
+                        UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true,
+                        UFT::FLinearColor(0, 0, 0, 1)
+                    );
+                }
             }
         }
     }
