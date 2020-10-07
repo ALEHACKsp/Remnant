@@ -6,6 +6,7 @@
 static UFT::UWorld* World = nullptr;
 static UFT::ARemnant_PlayerController_C* MyPlayerController = nullptr;
 static UFT::ATPSHud_C* MyHUD = nullptr;
+static UFT::UCanvas* MyCanvas = nullptr;
 static UFT::UFont* MyFont = nullptr;
 static bool bDrawPlayerESP = true;
 static bool bDrawItemESP = true;
@@ -122,25 +123,37 @@ void Hooked_PostRender(UFT::UGameViewportClient* this__, UFT::UCanvas* Canvas)
 {
     auto i = 0;
     // Draw two static things on top so we know we're injected
-    Canvas->K2_DrawText(MyFont, GetKismetSystemLibrary().STATIC_GetEngineVersion(), UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1), UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true, UFT::FLinearColor(0, 0, 0, 1));
-    Canvas->K2_DrawText(MyFont, GetKismetSystemLibrary().STATIC_GetGameName(), UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1), UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true, UFT::FLinearColor(0, 0, 0, 1));
+    Canvas->K2_DrawText(MyFont, GetKismetSystemLibrary().STATIC_GetEngineVersion(), UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1),
+        UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true, 
+        UFT::FLinearColor(0, 0, 0, 1));
+    Canvas->K2_DrawText(MyFont, GetKismetSystemLibrary().STATIC_GetGameName(), UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1),
+        UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true, 
+        UFT::FLinearColor(0, 0, 0, 1));
 
     // Only loop through world actors if player controller exists because we need to reference it for WorldContext, we'll crash otherwise
     if (MyPlayerController) 
     {
         //Print playercontroller name if exists
-        Canvas->K2_DrawText(MyFont, GetKismetSystemLibrary().STATIC_GetDisplayName(MyPlayerController), UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1), UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true, UFT::FLinearColor(0, 0, 0, 1));
+        Canvas->K2_DrawText(
+            MyFont, GetKismetSystemLibrary().STATIC_GetDisplayName(MyPlayerController), UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1),
+            UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true, 
+            UFT::FLinearColor(0, 0, 0, 1));
         
         if (MyPlayerController->K2_GetPawn())
         {
             //Print player character name if exists
-            Canvas->K2_DrawText(MyFont, GetKismetSystemLibrary().STATIC_GetDisplayName(MyPlayerController->K2_GetPawn()), UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1), UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true, UFT::FLinearColor(0, 0, 0, 1));
+            Canvas->K2_DrawText(MyFont, GetKismetSystemLibrary().STATIC_GetDisplayName(MyPlayerController->K2_GetPawn()), UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1),
+                UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true, 
+                UFT::FLinearColor(0, 0, 0, 1));
             auto MyPlayer = (UFT::ACharacter_Master_Player_C*)MyPlayerController->K2_GetPawn();
            
             //Print number of inventory items
             if (MyPlayer->GetCharacterInventory()) {
                 std::wstring inv_items = L"Inventory Items: " + std::to_wstring(MyPlayer->GetCharacterInventory()->Items.Num());
-                Canvas->K2_DrawText(MyFont, UFT::FString{ inv_items.c_str() }, UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1), UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(5, 5), false, false, true, UFT::FLinearColor(0, 0, 0, 1));
+                Canvas->K2_DrawText(
+                    MyFont, UFT::FString{ inv_items.c_str() }, UFT::FVector2D(10, (i++ * 12) + 10), UFT::FVector2D(1, 1),
+                    UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(5, 5), false, false, true, 
+                    UFT::FLinearColor(0, 0, 0, 1));
             }
        }
 
@@ -221,8 +234,10 @@ void SetupKeybinds()
             for (auto i = 0; i < OutActors.Num(); i++) {
                 auto TheItem = (UFT::AItem*)OutActors[i];
                 if (/*TheItem->IsA(UFT::AUseableItem::StaticClass()) &&*/ GetMyPlayer()) {
-                    GetMyPlayer()->Inventory->ServerPickupItem(TheItem);
-                    std::cout << "Trying to pick up " << TheItem->GetName() << "\n";
+                    if (!TheItem->GetOwner() || TheItem->GetOwner() != GetMyPlayer()) {
+                        GetMyPlayer()->Inventory->ServerPickupItem(TheItem);
+                        std::cout << "Trying to pick up " << TheItem->GetName() << "\n";
+                    }
                 }
             }
         }
@@ -248,11 +263,13 @@ BOOL WINAPI MainThread()
 
     while (!MyFont) {
         MyFont = UFT::UObject::FindObject<UFT::UFont>("Font Roboto.Roboto");
+        //MyFont = UFT::UObject::FindObject<UFT::UFont>("Font F_Console_Font.F_Console_Font");
     }
 
     // We will hook ProcessEvent because everything mostly everything we need gets filtered through ProcessEvent, so by hooking it we can find pointers to all the actors, players, inventories, etc..
     Real_ProcessEvent = reinterpret_cast<tProcessEvent>(reinterpret_cast<void**>(UFT::UObject::StaticClass()->VfTable)[64]);
-    Real_PostRender = reinterpret_cast<tPostRender>(reinterpret_cast<void**>(UFT::UGameViewportClient::StaticClass()->CreateDefaultObject()->VfTable)[91]); 
+    //Real_PostRender = reinterpret_cast<tPostRender>(reinterpret_cast<void**>(UFT::UGameViewportClient::StaticClass()->CreateDefaultObject()->VfTable)[91]); 
+    Real_PostRender = reinterpret_cast<tPostRender>(reinterpret_cast<void**>(UFT::UGameViewportClient::StaticClass()->CreateDefaultObject()->VfTable)[92]);
 
     printf("Base: 0x%p\n", GetModuleHandleW(nullptr));
     printf("UObjects: 0x%p\n", UFT::UObject::GObjects);
