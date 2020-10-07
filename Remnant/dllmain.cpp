@@ -199,6 +199,7 @@ void Hooked_ProcessEvent(UFT::UObject* this__, UFT::UFunction* fn, void* params)
 
 void SetupKeybinds()
 {
+    // F1 - Print and save the actor list
     Keybinds::Set(VK_F1, false, [] {
         if (MyPlayerController) {
             std::ofstream file{ "C:/temp/actorlist.txt", std::ios_base::app };
@@ -212,9 +213,9 @@ void SetupKeybinds()
         }
         });
 
+    // F2 - Force "takeall" of all items on the map
     Keybinds::Set(VK_F2, false, [] {
         if (MyPlayerController) {
-            // Loop through and try to pick up all items instantly..
             UFT::TArray<UFT::AActor*> OutActors{};
             GetGameplayStatics().STATIC_GetAllActorsOfClass(MyPlayerController, UFT::AItem::StaticClass(), &OutActors);
             for (auto i = 0; i < OutActors.Num(); i++) {
