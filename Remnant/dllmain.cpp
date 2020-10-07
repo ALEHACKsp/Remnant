@@ -251,7 +251,7 @@ BOOL WINAPI MainThread()
 
     // We will hook ProcessEvent because everything mostly everything we need gets filtered through ProcessEvent, so by hooking it we can find pointers to all the actors, players, inventories, etc..
     Real_ProcessEvent = reinterpret_cast<tProcessEvent>(reinterpret_cast<void**>(UFT::UObject::StaticClass()->VfTable)[64]);
-    Real_PostRender = reinterpret_cast<tPostRender>(reinterpret_cast<void**>(UFT::UGameViewportClient::StaticClass()->CreateDefaultObject()->VfTable)[91]); // 92 also seems to be PostRender
+    Real_PostRender = reinterpret_cast<tPostRender>(reinterpret_cast<void**>(UFT::UGameViewportClient::StaticClass()->CreateDefaultObject()->VfTable)[91]); 
 
     printf("Base: 0x%p\n", GetModuleHandleW(nullptr));
     printf("UObjects: 0x%p\n", UFT::UObject::GObjects);
