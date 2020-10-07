@@ -245,6 +245,16 @@ void SetupKeybinds()
             }
         }
         });
+
+    // F3 - Force "takeall" of all items on the map
+    Keybinds::Set(VK_F3, false, [] {
+        if (MyPlayerController) {
+            auto Items = GetMyPlayer()->Inventory->Items;
+            for (auto i = 0; i < Items.Num(); i++) {
+                std::cout << GetMyPlayer()->Inventory->Get
+            }
+        }
+        });
 }
 
 BOOL WINAPI MainThread()
