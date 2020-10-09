@@ -2,6 +2,8 @@
 #include "pch.h"
 #include "Keybinds.h"
 
+BOOL WINAPI Unload();
+
 // These static variables we'll use to hold things that will reference alot like PlayerController
 static UFT::UWorld* World = nullptr;
 static UFT::ARemnant_PlayerController_C* MyPlayerController = nullptr;
@@ -158,6 +160,23 @@ void Hooked_PostRender(UFT::UGameViewportClient* this__, UFT::UCanvas* Canvas)
                     UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(5, 5), false, false, true, 
                     UFT::FLinearColor(0, 0, 0, 1));
             }
+
+            // Print inventory items in center-ish of screen
+            if (MyPlayerController) {
+                int index = 0;
+                auto Items = GetMyPlayer()->Inventory->Items;
+                for (auto i = 0; i < Items.Num(); i++) {
+                    if (Items[i].EquipmentSlotIndex != -1) {
+                        std::wstring Iteminfo =
+                            L"Slot " + std::to_wstring(Items[i].EquipmentSlotIndex) + L": "
+                            + GetKismetSystemLibrary().STATIC_GetClassDisplayName(Items[i].ItemBP).ToWString();
+                        Canvas->K2_DrawText(
+                            MyFont, UFT::FString{ Iteminfo.c_str() }, UFT::FVector2D(500, (index++ * 12) + 10), UFT::FVector2D(1, 1),
+                            UFT::FLinearColor(1, 1, 1, 1), 0, UFT::FLinearColor(0, 0, 0, 1), UFT::FVector2D(0, 0), false, false, true,
+                            UFT::FLinearColor(0, 0, 0, 1));
+                    }
+                }
+            }
        }
 
         if (GetMyPlayer()) {
@@ -246,14 +265,34 @@ void SetupKeybinds()
         }
         });
 
-    // F3 - Force "takeall" of all items on the map
+    // F3 - Print info about the Item Slots in your inventory
     Keybinds::Set(VK_F3, false, [] {
+        for (auto i = 0; i < GetMyPlayer()->Inventory->EquipmentSlots.Num(); i++) {
+            const auto& Slot = GetMyPlayer()->Inventory->EquipmentSlots[i];
+            std::cout << i << ": " << Slot.HotKey.GetName() << ": " << Slot.NameID.GetName() << std::endl;
+        }
+        });
+
+    // F4 - Print info about the Item Slots in your inventory
+    Keybinds::Set(VK_F4, false, [] {
+        // Print inventory items in center-ish of screen
         if (MyPlayerController) {
+            int index = 0;
             auto Items = GetMyPlayer()->Inventory->Items;
             for (auto i = 0; i < Items.Num(); i++) {
-                
+                std::wstring Iteminfo =
+                    L"Slot " + std::to_wstring(Items[i].EquipmentSlotIndex) + L": "
+                    + GetKismetSystemLibrary().STATIC_GetClassDisplayName(Items[i].ItemBP).ToWString()
+                    + L" | Qty: " + std::to_wstring(Items[i].InstanceData->Quantity)
+                    + L" | Level: " + std::to_wstring(Items[i].InstanceData->Level);
+                std::wcout << Iteminfo << std::endl;
             }
         }
+        });
+
+    // F8 - Unload hack
+    Keybinds::Set(VK_F8, false, [] {
+        Unload();
         });
 }
 
@@ -282,7 +321,7 @@ BOOL WINAPI MainThread()
     // We will hook ProcessEvent because everything mostly everything we need gets filtered through ProcessEvent, so by hooking it we can find pointers to all the actors, players, inventories, etc..
     Real_ProcessEvent = reinterpret_cast<tProcessEvent>(reinterpret_cast<void**>(UFT::UObject::StaticClass()->VfTable)[64]);
     //Real_PostRender = reinterpret_cast<tPostRender>(reinterpret_cast<void**>(UFT::UGameViewportClient::StaticClass()->CreateDefaultObject()->VfTable)[91]); 
-    Real_PostRender = reinterpret_cast<tPostRender>(reinterpret_cast<void**>(UFT::UGameViewportClient::StaticClass()->CreateDefaultObject()->VfTable)[92]);
+    Real_PostRender = reinterpret_cast<tPostRender>(reinterpret_cast<void**>(UFT::UGameViewportClient::StaticClass()->CreateDefaultObject()->VfTable)[91]);
 
     printf("Base: 0x%p\n", GetModuleHandleW(nullptr));
     printf("UObjects: 0x%p\n", UFT::UObject::GObjects);
@@ -306,6 +345,19 @@ BOOL WINAPI MainThread()
     return TRUE;
 }
 
+BOOL WINAPI Unload()
+{
+    // Detach ProcessEvent and PostRender 
+    if (DetourTransactionBegin() != NO_ERROR ||
+        DetourUpdateThread(GetCurrentThread()) != NO_ERROR ||
+        DetourDetach(&(LPVOID&)Real_ProcessEvent, (PVOID)Hooked_ProcessEvent) != NO_ERROR ||
+        DetourDetach(&(LPVOID&)Real_PostRender, (PVOID)Hooked_PostRender) != NO_ERROR ||
+        DetourTransactionCommit() != NO_ERROR)
+    {
+        return FALSE;
+    }
+}
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
     if (ul_reason_for_call == DLL_PROCESS_ATTACH)
@@ -315,7 +367,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
     }
     else if (ul_reason_for_call == DLL_PROCESS_DETACH)
     {
-
+        Unload();
+        FreeLibrary(hModule);
     }
 
     return TRUE;
